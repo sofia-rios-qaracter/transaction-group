@@ -4,53 +4,53 @@ import org.example.Entities.Enums.Result;
 import org.example.Entities.Enums.TransactionType;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 
 public class Transaction {
     // CLASS ATRIBUTES
     private long operationId;
     private BigDecimal amount;
-    private LocalDate date;
+    private LocalDateTime date;
     private TransactionType transactionType;
-    private Account mainAccount;
-    private Account transferToAccount;
+    private long mainAccountID;
+    private long transferToAccountID;
     private double creditAmount;
     private Result result;
 
     // CONSTRUCTORS
     // WITHDRAWAL
-    public Transaction(long operationId, BigDecimal amount, LocalDate date, Account mainAccount, Result result) {
+    public Transaction(long operationId, BigDecimal amount, LocalDateTime date, long mainAccountID, Result result) {
         this.operationId = operationId;
         this.amount = amount;
         this.date = date;
         this.transactionType = TransactionType.WITHDRAWAL;
-        this.mainAccount = mainAccount;
-        this.transferToAccount = null;
+        this.mainAccountID = mainAccountID;
+        this.transferToAccountID = 0;
         this.creditAmount = 0;
         this.result = result;
     }
 
     // TRANSFER
-    public Transaction(long operationId, BigDecimal amount, LocalDate date, Account mainAccount, Account transferToAccount, Result result) {
+    public Transaction(long operationId, BigDecimal amount, LocalDateTime date, long mainAccountID, long transferToAccountId, Result result) {
         this.operationId = operationId;
         this.amount = amount;
         this.date = date;
         this.transactionType = TransactionType.TRANSFER;
-        this.mainAccount = mainAccount;
-        this.transferToAccount = transferToAccount;
+        this.mainAccountID = mainAccountID;
+        this.transferToAccountID = 0;
         this.creditAmount = 0;
         this.result = result;
     }
 
     // CREDIT
-    public Transaction(long operationId, LocalDate date, Account mainAccount, double creditAmount, Result result) {
+    public Transaction(long operationId, LocalDateTime date, long mainAccountID, double creditAmount, Result result) {
         this.operationId = operationId;
         this.amount = null;
         this.date = date;
         this.transactionType = TransactionType.CREDIT;
-        this.mainAccount = mainAccount;
-        this.transferToAccount = null;
+        this.mainAccountID = mainAccountID;
+        this.transferToAccountID = 0;
         this.creditAmount = creditAmount;
         this.result = result;
     }
@@ -72,11 +72,11 @@ public class Transaction {
         this.amount = amount;
     }
 
-    public LocalDate getDate() {
+    public LocalDateTime getDate() {
         return date;
     }
 
-    public void setDate(LocalDate date) {
+    public void setDate(LocalDateTime date) {
         this.date = date;
     }
 
@@ -88,20 +88,20 @@ public class Transaction {
         this.transactionType = transactionType;
     }
 
-    public Account getMainAccount() {
-        return mainAccount;
+    public long getMainAccount() {
+        return mainAccountID;
     }
 
-    public void setMainAccount(Account mainAccount) {
-        this.mainAccount = mainAccount;
+    public void setMainAccount(long mainAccount) {
+        this.mainAccountID = mainAccount;
     }
 
-    public Account getTransferToAccount() {
-        return transferToAccount;
+    public long getTransferToAccount() {
+        return transferToAccountID;
     }
 
-    public void setTransferToAccount(Account transferToAccount) {
-        this.transferToAccount = transferToAccount;
+    public void setTransferToAccount(long transferToAccount) {
+        this.transferToAccountID = transferToAccount;
     }
 
     public double getCreditAmount() {
