@@ -19,7 +19,7 @@ public class CreditService {
     }
 
     public BigDecimal calculateInterest(Long accountId){
-        BigDecimal amount = this.t.amount;
+        BigDecimal amount = this.t.getAmount();
         BigDecimal interestRate;
 
         if((new BigDecimal(100)).compareTo(amount) > 0){
