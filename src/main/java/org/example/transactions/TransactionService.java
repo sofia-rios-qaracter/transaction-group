@@ -1,16 +1,17 @@
 package org.example.transactions;
+import org.example.Entities.Enums.Result;
+import org.example.Entities.Enums.TransactionType;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
 public class TransactionService {
 
     private Map<Long, Transaction> transactionHistory = new HashMap<>();
-    private long transactionCounter = 1;
+    private long operationCounter = 1;
 
-    // El umbral de pco dinero
-    private final BigDecimal UMBRAL_ALERTA = new BigDecimal("100");
+    // Servicios con los que hablo
     private final AccountService accountService;
     private final CreditService creditService;
     private final AlertService alertService;
@@ -21,55 +22,51 @@ public class TransactionService {
         this.alertService = alertService;
     }
 
+    // Metodo retirar
     public void withdraw(Long accountId, BigDecimal amount) throws InsufficientFundsException {
-        Account account = accountService.getAccountsMap().get(accountId);
+        Account acc = accountService.getAccountsMap().get(accountId);
 
-        if (account == null) throw new RuntimeException("Account not found");
-        // Lógica de saldo y Overdraft
-        if (account.getBalance().compareTo(amount) < 0) {
+        //Lógica de dinero (Saldo o Sobregiro)
+        if (acc.getBalance().compareTo(amount) < 0) {
             if (!creditService.applyOverdraft(accountId)) {
-                registrarTransaccion(accountId, amount, TransactionType.WITHDRAWAL, Result.FAILED);
-                throw new InsufficientFundsException("Insufficient balance.");
+                saveRecord(acc, amount, Result.FAILED); // Registro fallo
+                throw new InsufficientFundsException("No money");
             }
         }
-        // Restar dinero
-        account.setBalance(account.getBalance().subtract(amount));
-        registrarTransaccion(accountId, amount, TransactionType.WITHDRAWAL, Result.SUCCESS);
-        //si tienenpoco dinero
-        comprobarSaldoBajo(account);
+
+        //Actualizar saldo
+        acc.setBalance(acc.getBalance().subtract(amount));
+
+        //Registro y alerta
+        saveRecord(acc, amount, Result.SUCCESS);
+        if (acc.getBalance().compareTo(new BigDecimal("100")) < 0) {
+            alertService.sendLowBalanceAlert(accountId);
+        }
     }
 
+    // Metodo transferir
     public void transfer(Long srcId, Long destId, BigDecimal amount) throws InvalidTransactionException {
         try {
-            // La transferencia usa withdraw, por lo que ya comprueba el saldo ahí
+            // Quitamos de una cuenta (ya registra el retiro solo)
             withdraw(srcId, amount);
 
-            Account destAccount = accountService.getAccountsMap().get(destId);
-            destAccount.setBalance(destAccount.getBalance().add(amount));
-            registrarTransaccion(destId, amount, TransactionType.TRANSFER, Result.SUCCESS);
+            // Ponemos en la otra
+            Account dest = accountService.getAccountsMap().get(destId);
+            dest.setBalance(dest.getBalance().add(amount));
+
+            // Registro de la transferencia
+            Transaction tx = new Transaction(operationCounter++, amount, LocalDate.now(),
+                    accountService.getAccountsMap().get(srcId), dest, Result.SUCCESS);
+            transactionHistory.put(tx.getOperationId(), tx);
 
         } catch (Exception e) {
-            throw new InvalidTransactionException("Error: " + e.getMessage());
+            throw new InvalidTransactionException("Transfer failed");
         }
     }
 
-    private void comprobarSaldoBajo(Account account) {
-        if (account.getBalance().compareTo(UMBRAL_ALERTA) < 0) {
-            System.out.println(" WARNING! The account " + account.getAccountId() +
-                    " has almost no money: " + account.getBalance() + "€");
-            // Llamada al servicio del UML
-            alertService.sendLowBalanceAlert(account.getAccountId());
-        }
-    }
-
-
-    private void registrarTransaccion(Long accId, BigDecimal amount, TransactionType type, Result result) {
-        Transaction tx = new Transaction();
-        tx.setOperationId(transactionCounter++);
-        tx.setAmount(amount);
-        tx.setDate(LocalDateTime.now());
-        tx.setType(type);
-        tx.setResult(result);
+    // Función auxiliar para no repetir código al guardar
+    private void saveRecord(Account acc, BigDecimal amount, Result res) {
+        Transaction tx = new Transaction(operationCounter++, amount, LocalDate.now(), acc, res);
         transactionHistory.put(tx.getOperationId(), tx);
     }
 }
