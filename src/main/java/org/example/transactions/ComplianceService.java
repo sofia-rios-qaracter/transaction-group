@@ -7,11 +7,9 @@ public class ComplianceService {
     private final BigDecimal LIMITE_AHORRO = new BigDecimal("2000.00");
     private final BigDecimal LIMITE_CORRIENTE = new BigDecimal("10000.00");
 
-    public boolean verifyFundsOrigin(Transaction tx) {
+    public boolean verifyFundsOrigin(Transaction tx, Account origen, Account destino) {
         System.out.println("\n[Compliance] --- Iniciando Análisis de Origen ---");
 
-        Account origen = tx.getMainAccount();
-        Account destino = tx.getTransferToAccount();
         BigDecimal cantidad = tx.getAmount();
 
         if (origen == null) {
@@ -62,7 +60,6 @@ public class ComplianceService {
             return true;
         }
 
-        // horario de riesgo
         int hora = tx.getDate().getHour();
         boolean esMadrugada = (hora >= 2 && hora <= 5);
         boolean esCantidadConsiderable = tx.getAmount().compareTo(new BigDecimal("1000.00")) > 0;
@@ -72,21 +69,19 @@ public class ComplianceService {
             return true;
         }
 
-        // lavado / transferencia a si mismo
         if (tx.getTransactionType() == TransactionType.TRANSFER) {
-            if (tx.getMainAccount() != null && tx.getTransferToAccount() != null) {
+            if (tx.getMainAccount() != 0 && tx.getTransferToAccount() != 0) {
 
-                Long idOrigen = tx.getMainAccount().getAccountId();
-                Long idDestino = tx.getTransferToAccount().getAccountId();
+                long idOrigen = tx.getMainAccount();
+                long idDestino = tx.getTransferToAccount();
 
-                if (idOrigen.equals(idDestino)) {
+                if (idOrigen == idDestino) {
                     System.out.println("[Compliance] -> ERROR: Origen y Destino son la misma cuenta.");
                     return true;
                 }
             }
         }
 
-        // limite legal
         if (tx.getAmount().compareTo(limiteLegal) > 0) {
             System.out.println("[Compliance] -> ALERTA AUTOMÁTICA: Cantidad excede el límite permitido.");
             return true;
